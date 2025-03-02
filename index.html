@@ -673,6 +673,13 @@
         backToResultsBtn.addEventListener('click', backToResults);
         reviewHomeBtn.addEventListener('click', goToHome);
 
+        // Add global event listener for answer input
+        answerInput.addEventListener('input', function() {
+            if (currentQuestion < questions.length) {
+                saveUserAnswer(this.value);
+            }
+        });
+
         // Functions
         function showScreen(screen) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -928,49 +935,14 @@
             }
 
             answerInput.focus();
-
-            // Add input event listener to save answer as user types
-            answerInput.oninput = () => {
-                saveUserAnswer(answerInput.value);
-            };
-            
-            // Add blur event to save answer when moving away from the input
-            answerInput.onblur = () => {
-                if (answerInput.value.trim()) {
-                    saveUserAnswer(answerInput.value);
-                }
-            };
-        }
-
-        function cleanNumberString(str) {
-            // Convert string to string type to ensure string methods work
-            str = String(str);
-            // Remove non-numeric characters except decimal points and negative signs
-            return str.replace(/[^\d.-]/g, '');
-        }
-
-        function isValidNumber(str) {
-            // Convert to string first
-            str = String(str);
-            // Check if the string is a valid number
-            return !isNaN(parseFloat(str)) && isFinite(parseFloat(str));
-        }
-
-        function compareNumbers(num1, num2) {
-            // Convert to numbers and compare with a small tolerance for floating point issues
-            const parsedNum1 = parseFloat(num1);
-            const parsedNum2 = parseFloat(num2);
-            const tolerance = 0.0001; // Small tolerance for floating point comparison
-            
-            return Math.abs(parsedNum1 - parsedNum2) < tolerance;
         }
 
         function saveUserAnswer(answer) {
             if (currentQuestion >= questions.length) return;
 
             const question = questions[currentQuestion];
-            let userAnswer = (answer || '').trim();
-            let correctAnswer = (question.answer || '').trim();
+            let userAnswer = String(answer || '').trim();
+            let correctAnswer = String(question.answer || '').trim();
 
             // Check if input is empty
             if (userAnswer === '') {
@@ -987,22 +959,22 @@
                 return;
             }
 
-            // Handle number answers specially
-            let isCorrect = false;
+            // Simple comparison for text answers
+            let isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
             
-            // Clean the user and correct answer strings by removing non-numeric characters
-            const cleanedUserAnswer = cleanNumberString(userAnswer);
-            const cleanedCorrectAnswer = cleanNumberString(correctAnswer);
-            
-            // If both can be parsed as valid numbers, compare them numerically
-            if (isValidNumber(cleanedUserAnswer) && isValidNumber(cleanedCorrectAnswer)) {
-                isCorrect = compareNumbers(cleanedUserAnswer, cleanedCorrectAnswer);
-            } else {
-                // Otherwise, do a regular string comparison (case-insensitive)
-                isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
+            // For numeric values, try numeric comparison
+            if (!isCorrect) {
+                // Try to extract numeric values
+                const userNum = parseFloat(userAnswer.replace(/[^\d.-]/g, ''));
+                const correctNum = parseFloat(correctAnswer.replace(/[^\d.-]/g, ''));
+                
+                // If both are valid numbers, compare them with a small tolerance
+                if (!isNaN(userNum) && !isNaN(correctNum)) {
+                    isCorrect = Math.abs(userNum - correctNum) < 0.0001;
+                }
             }
 
-            // Save the answer - now marking ANY non-empty input as "answered"
+            // Save the answer
             userAnswers[currentQuestion] = {
                 questionNo: question.no || currentQuestion + 1,
                 questionText: question.question || '',
@@ -1011,7 +983,7 @@
                 isCorrect: isCorrect,
                 questionType: question.type || 'Text',
                 explanation: question.explanation || '',
-                isAnswered: true // If they typed anything, it's considered answered
+                isAnswered: true
             };
         }
 
