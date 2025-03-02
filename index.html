@@ -1000,6 +1000,7 @@
         }
 
         function takeScreenshot() {
+            const computedBg = window.getComputedStyle(resultScreen).backgroundColor;
             html2canvas(resultScreen, {
                 backgroundColor: computedBg, // Use the element's current background
                 scale: 2, // Higher scale for better quality
