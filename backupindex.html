@@ -524,7 +524,7 @@
             </div>
             <div class="input-group">
                 <label for="sheetIdInput">Quiz ID</label>
-                <input type="text" id="sheetIdInput" placeholder="Enter the Quiz ID">
+                <input type="text" id="sheetIdInput" value="1QfXLwOvU4XqkxBlQn3xpMrTVb0ydG4uSbjf1hKumwuw" placeholder="Enter the Quiz ID">
                 <p>Please obtain the Quiz ID from your teacher.</p>
             </div>
             <div class="center-btn">
@@ -680,6 +680,9 @@
             }
         });
 
+
+
+
         // Functions
         function showScreen(screen) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -717,6 +720,24 @@
                     totalQuestions.textContent = questions.length;
                     totalQuestionsResult.textContent = questions.length;
 
+                    // Preprocess MCQ questions to shuffle options only once
+                    questions.forEach(question => {
+                        if (question.type === 'MCQ') {
+                            let options = (question.mcqOptions || '')
+                                .split('#')
+                                .map(option => option.trim())
+                                .filter(option => option !== '');
+                            const correctAnswer = (question.answer || '').trim();
+                            const shuffledOptions = shuffleArray(options);
+                            const letters = ['A', 'B', 'C', 'D'];
+                            question.shuffledOptions = shuffledOptions.map((option, index) => ({
+                                letter: letters[index],
+                                option: option,
+                                isCorrect: option.toLowerCase().trim() === correctAnswer.toLowerCase().trim()
+                            }));
+                        }
+                    });
+
                     // Initialize user answers array with empty objects instead of null
                     userAnswers = Array(questions.length).fill().map(() => ({
                         userAnswer: '',
@@ -742,7 +763,7 @@
             }
         }
 
-                async function fetchQuestionData(sheetId) {
+        async function fetchQuestionData(sheetId) {
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
 
             try {
@@ -799,7 +820,17 @@
             }
         }
 
-
+        // Utility function to shuffle an array (Fisher-Yates shuffle)
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+        
+        
         function showQuestion(index) {
             // Save current answer before moving to another question
             if (currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion] && questions[currentQuestion].type !== 'MCQ') {
@@ -838,8 +869,6 @@
                 readingMaterial.style.display = 'none';
             }
 
-
-
             // Set hint text
             const hintValue = question.hint || '';
             hintText.textContent = hintValue && String(hintValue).trim() !== '' &&
@@ -855,34 +884,13 @@
         }
 
         function renderMCQQuestion(question) {
-            // Split MCQ options and trim each one
-            let options = (question.mcqOptions || '').split('#').map(option => option.trim()).filter(option => option !== '');
-            const correctAnswer = (question.answer || '').trim();
+            mcqOptions.innerHTML = '';
 
-            // Create array of options with fixed A, B, C, D labels but shuffled content
-            const shuffledOptions = [];
-
-            // Create a copy of options array to shuffle
-            const optionsCopy = [...options];
-
-            // Shuffle the options
-            for (let i = optionsCopy.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [optionsCopy[i], optionsCopy[j]] = [optionsCopy[j], optionsCopy[i]];
-            }
-
-            // Assign shuffled options to A, B, C, D
-            const letters = ['A', 'B', 'C', 'D'];
-            for (let i = 0; i < optionsCopy.length; i++) {
-                shuffledOptions.push({
-                    letter: letters[i],
-                    option: optionsCopy[i],
-                    isCorrect: optionsCopy[i].toLowerCase().trim() === correctAnswer.toLowerCase().trim()
-                });
-            }
+            // Use the preprocessed shuffled options
+            const optionsToRender = question.shuffledOptions || [];
 
             // Render options
-            shuffledOptions.forEach((optionObj) => {
+            optionsToRender.forEach((optionObj) => {
                 const optionElement = document.createElement('div');
                 optionElement.className = 'mcq-option';
                 optionElement.dataset.option = optionObj.option;
