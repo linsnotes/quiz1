@@ -475,7 +475,7 @@
             <h2>Welcome to the Quiz App</h2>
             <div class="input-group">
                 <label for="nameInput">Your Name</label>
-                <input type="text" id="nameInput" placeholder="Enter your name">
+                <input type="text" id="nameInput" placeholder="Enter your name (used for your quiz summary only).">
             </div>
             <div class="input-group">
                 <label for="sheetIdInput">Quiz ID</label>
@@ -786,10 +786,6 @@
             hintText.textContent = question.hint && question.hint.toLowerCase() !== "none" ? 
                 question.hint : "No hints are provided for this question.";
 
-            // Update navigation buttons
-            prevQuestionBtn.disabled = index === 0;
-            nextQuestionBtn.disabled = index === questions.length - 1;
-
             // Render question based on type
             if (question.type === 'MCQ') {
                 renderMCQQuestion(question);
@@ -911,7 +907,7 @@
 
         function showPreviousQuestion() {
             if (currentQuestion === 0) {
-                alert("This is the first question.");
+                window.alert("This is the first question.");
                 return;
             }
             showQuestion(currentQuestion - 1);
@@ -919,7 +915,7 @@
 
         function showNextQuestion() {
             if (currentQuestion === questions.length - 1) {
-                alert("This is the last question. If you have completed all questions, you can click the 'Submit All Answers' button to end the quiz.");
+                window.alert("This is the last question. If you have completed all questions, you can click the 'Submit All Answers' button to end the quiz.");
                 return;
             }
             showQuestion(currentQuestion + 1);
