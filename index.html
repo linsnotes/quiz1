@@ -803,6 +803,14 @@
         }
 
         function showQuestion(index) {
+            // Save current answer before moving to another question
+            if (currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion] && questions[currentQuestion].type !== 'MCQ') {
+                const currentInputValue = answerInput.value.trim();
+                if (currentInputValue) {
+                    saveUserAnswer(currentInputValue);
+                }
+            }
+
             if (index < 0) {
                 index = 0;
             } else if (index >= questions.length) {
@@ -925,14 +933,25 @@
             answerInput.oninput = () => {
                 saveUserAnswer(answerInput.value);
             };
+            
+            // Add blur event to save answer when moving away from the input
+            answerInput.onblur = () => {
+                if (answerInput.value.trim()) {
+                    saveUserAnswer(answerInput.value);
+                }
+            };
         }
 
         function cleanNumberString(str) {
+            // Convert string to string type to ensure string methods work
+            str = String(str);
             // Remove non-numeric characters except decimal points and negative signs
             return str.replace(/[^\d.-]/g, '');
         }
 
         function isValidNumber(str) {
+            // Convert to string first
+            str = String(str);
             // Check if the string is a valid number
             return !isNaN(parseFloat(str)) && isFinite(parseFloat(str));
         }
@@ -1221,6 +1240,9 @@
         // Allow pressing Enter to submit answers for typing questions
         answerInput.addEventListener('keypress', function (event) {
             if (event.key === 'Enter') {
+                // Save the answer before navigating
+                saveUserAnswer(answerInput.value);
+                
                 const nextIndex = currentQuestion + 1;
                 if (nextIndex < questions.length) {
                     showQuestion(nextIndex);
