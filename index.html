@@ -610,7 +610,7 @@
     </div>
 
     <script>
-        // DOM Elements
+       // DOM Elements
         const appHeader = document.getElementById('appHeader');
         const welcomeScreen = document.getElementById('welcomeScreen');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -660,6 +660,7 @@
         let userAnswers = [];
         let quizCompleted = false;
         let hintVisible = false;
+        let quizTimeLimit = null; // Global time limit in minutes
 
         // Event Listeners
         startQuizBtn.addEventListener('click', startQuiz);
@@ -679,9 +680,6 @@
                 saveUserAnswer(this.value);
             }
         });
-
-
-
 
         // Functions
         function showScreen(screen) {
@@ -719,6 +717,12 @@
                     questions = data;
                     totalQuestions.textContent = questions.length;
                     totalQuestionsResult.textContent = questions.length;
+
+                    // Extract quiz time limit from the first row if provided
+                    // Expecting timeLimit to be in minutes (only set in the first row after the header)
+                    if (questions[0].timeLimit && !isNaN(questions[0].timeLimit)) {
+                        quizTimeLimit = parseInt(questions[0].timeLimit, 10);
+                    }
 
                     // Preprocess MCQ questions to shuffle options only once
                     questions.forEach(question => {
@@ -786,7 +790,7 @@
                     return [];
                 }
 
-                // Define the expected column order
+                // Define the expected column order, including the new "timeLimit" column
                 const expectedOrder = [
                     'no',              // Question number
                     'question',        // Question text
@@ -795,7 +799,8 @@
                     'mcqOptions',      // Multiple choice options
                     'readingMaterial', // Reading material
                     'hint',            // Hint
-                    'explanation'      // Explanation
+                    'explanation',     // Explanation
+                    'timeLimit'        // Quiz time limit in minutes (new column)
                 ];
 
                 const questions = [];
@@ -829,8 +834,7 @@
             }
             return arr;
         }
-        
-        
+
         function showQuestion(index) {
             // Save current answer before moving to another question
             if (currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion] && questions[currentQuestion].type !== 'MCQ') {
@@ -963,13 +967,13 @@
 
             // Simple comparison for text answers
             let isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
-            
+
             // For numeric values, try numeric comparison
             if (!isCorrect) {
                 // Try to extract numeric values
                 const userNum = parseFloat(userAnswer.replace(/[^\d.-]/g, ''));
                 const correctNum = parseFloat(correctAnswer.replace(/[^\d.-]/g, ''));
-                
+
                 // If both are valid numbers, compare them with a small tolerance
                 if (!isNaN(userNum) && !isNaN(correctNum)) {
                     isCorrect = Math.abs(userNum - correctNum) < 0.0001;
@@ -1028,7 +1032,7 @@
 
             // Check if any questions are unanswered
             const unansweredQuestions = [];
-            
+
             for (let i = 0; i < userAnswers.length; i++) {
                 const answer = userAnswers[i];
                 if (!answer || !answer.isAnswered) {
@@ -1053,9 +1057,25 @@
                 const now = new Date();
                 const elapsedMilliseconds = now - startTime;
                 const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
-                const minutes = Math.floor(elapsedSeconds / 60);
-                const seconds = elapsedSeconds % 60;
-                timerValue.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                // If a quiz time limit is set, count down from that limit
+                if (quizTimeLimit !== null) {
+                    const totalSeconds = quizTimeLimit * 60;
+                    const remainingSeconds = totalSeconds - elapsedSeconds;
+                    if (remainingSeconds <= 0) {
+                        timerValue.textContent = "00:00";
+                        finishQuiz();
+                    } else {
+                        const minutes = Math.floor(remainingSeconds / 60);
+                        const seconds = remainingSeconds % 60;
+                        timerValue.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    }
+                } else {
+                    // Default behavior: count up
+                    const minutes = Math.floor(elapsedSeconds / 60);
+                    const seconds = elapsedSeconds % 60;
+                    timerValue.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                }
             }, 1000);
         }
 
@@ -1201,6 +1221,7 @@
             quizCompleted = false;
             nameInput.value = '';
             sheetIdInput.value = '';
+            quizTimeLimit = null;
 
             // Stop timer if running
             if (timerInterval) {
@@ -1216,7 +1237,7 @@
             if (event.key === 'Enter') {
                 // Save the answer before navigating
                 saveUserAnswer(answerInput.value);
-                
+
                 const nextIndex = currentQuestion + 1;
                 if (nextIndex < questions.length) {
                     showQuestion(nextIndex);
