@@ -1001,16 +1001,14 @@
 
         function takeScreenshot() {
             html2canvas(resultScreen, {
-                backgroundColor: "#ffffff", // Ensure solid white background
-                scale: 2, // Higher scale for better quality
-                useCORS: true, // Handle cross-origin images if any
-                logging: false, // Disable logging
-                allowTaint: true, // Allow processing of cross-origin content
-                letterRendering: true, // Better text rendering
+                backgroundColor: 'var(--background-color)', // Match app background
+                scale: 2, // Higher resolution
+                useCORS: true, // Better handling of images
+                logging: false // Reduce console noise
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Quiz_Results_${studentName.textContent.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
-                link.href = canvas.toDataURL('image/png', 1.0); // Maximum quality
+                link.href = canvas.toDataURL('image/png');
                 link.click();
             });
         }
