@@ -1001,7 +1001,7 @@
 
         function takeScreenshot() {
             html2canvas(resultScreen, {
-                backgroundColor: "#ffffff", // Ensure solid white background
+                backgroundColor: computedBg, // Use the element's current background
                 scale: 2, // Higher scale for better quality
                 useCORS: true, // Handle cross-origin images if any
                 logging: false, // Disable logging
