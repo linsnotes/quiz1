@@ -744,7 +744,7 @@
             questionText.textContent = question.question;
 
             // Set background info if available
-            if (question.backgroundInfo && question.backgroundInfo !== 'None') {
+            if (question.backgroundInfo && question.backgroundInfo.trim() !== '') {
                 backgroundInfo.textContent = question.backgroundInfo;
                 backgroundInfo.style.display = 'block';
             } else {
@@ -752,7 +752,8 @@
             }
 
             // Set hint text
-            hintText.textContent = question.hint;
+            hintText.textContent = question.hint && question.hint.toLowerCase() !== "none" ? 
+                question.hint : "No hints are provided for this question.";
 
             // Update navigation buttons
             prevQuestionBtn.disabled = index === 0;
@@ -984,7 +985,9 @@
 
                     const explanationDiv = document.createElement('div');
                     explanationDiv.className = 'review-explanation';
-                    explanationDiv.innerHTML = `<strong>Explanation:</strong> ${questions[index].explanation}`;
+                    const explanationText = questions[index].explanation && questions[index].explanation.toLowerCase() !== "none" ? 
+                        questions[index].explanation : "No explanations are given for this question.";
+                    explanationDiv.innerHTML = `<strong>Explanation:</strong> ${explanationText}`;
 
                     reviewItem.appendChild(questionHeader);
                     reviewItem.appendChild(answerText);
@@ -1011,7 +1014,9 @@
 
                 const explanationDiv = document.createElement('div');
                 explanationDiv.className = 'review-explanation';
-                explanationDiv.innerHTML = `<strong>Explanation:</strong> ${answer.explanation}`;
+                const explanationText = answer.explanation && answer.explanation.toLowerCase() !== "none" ? 
+                    answer.explanation : "No explanations are given for this question.";
+                explanationDiv.innerHTML = `<strong>Explanation:</strong> ${explanationText}`;
 
                 reviewItem.appendChild(questionHeader);
                 reviewItem.appendChild(answerText);
