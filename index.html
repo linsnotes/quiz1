@@ -927,34 +927,72 @@
             };
         }
 
+        function cleanNumberString(str) {
+            // Remove non-numeric characters except decimal points and negative signs
+            return str.replace(/[^\d.-]/g, '');
+        }
+
+        function isValidNumber(str) {
+            // Check if the string is a valid number
+            return !isNaN(parseFloat(str)) && isFinite(parseFloat(str));
+        }
+
+        function compareNumbers(num1, num2) {
+            // Convert to numbers and compare with a small tolerance for floating point issues
+            const parsedNum1 = parseFloat(num1);
+            const parsedNum2 = parseFloat(num2);
+            const tolerance = 0.0001; // Small tolerance for floating point comparison
+            
+            return Math.abs(parsedNum1 - parsedNum2) < tolerance;
+        }
+
         function saveUserAnswer(answer) {
             if (currentQuestion >= questions.length) return;
 
             const question = questions[currentQuestion];
-            const userAnswer = (answer || '').trim();
-            const correctAnswer = (question.answer || '').trim();
+            let userAnswer = (answer || '').trim();
+            let correctAnswer = (question.answer || '').trim();
 
-            // Check correctness
+            // Check if input is empty
+            if (userAnswer === '') {
+                userAnswers[currentQuestion] = {
+                    questionNo: question.no || currentQuestion + 1,
+                    questionText: question.question || '',
+                    userAnswer: '',
+                    correctAnswer: correctAnswer,
+                    isCorrect: false,
+                    questionType: question.type || 'Text',
+                    explanation: question.explanation || '',
+                    isAnswered: false
+                };
+                return;
+            }
+
+            // Handle number answers specially
             let isCorrect = false;
-
-            // For numerical answers, check if both can be parsed as numbers
-            if (!isNaN(parseFloat(userAnswer)) && !isNaN(parseFloat(correctAnswer))) {
-                isCorrect = parseFloat(userAnswer) === parseFloat(correctAnswer);
+            
+            // Clean the user and correct answer strings by removing non-numeric characters
+            const cleanedUserAnswer = cleanNumberString(userAnswer);
+            const cleanedCorrectAnswer = cleanNumberString(correctAnswer);
+            
+            // If both can be parsed as valid numbers, compare them numerically
+            if (isValidNumber(cleanedUserAnswer) && isValidNumber(cleanedCorrectAnswer)) {
+                isCorrect = compareNumbers(cleanedUserAnswer, cleanedCorrectAnswer);
             } else {
-                // Compare strings by ignoring case and trimming whitespace
+                // Otherwise, do a regular string comparison (case-insensitive)
                 isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
             }
 
-            // Save user answer - mark as answered if they've provided a non-empty answer
+            // Save the answer - now marking ANY non-empty input as "answered"
             userAnswers[currentQuestion] = {
                 questionNo: question.no || currentQuestion + 1,
                 questionText: question.question || '',
-                userAnswer,
+                userAnswer: userAnswer,
                 correctAnswer: correctAnswer,
-                isCorrect,
+                isCorrect: isCorrect,
                 questionType: question.type || 'Text',
                 explanation: question.explanation || '',
-                isAnswered: userAnswer !== ''
+                isAnswered: true // If they typed anything, it's considered answered
             };
         }
 
