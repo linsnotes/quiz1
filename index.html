@@ -711,10 +711,10 @@
                     totalQuestionsResult.textContent = questions.length;
 
                     // Initialize user answers array with empty objects instead of null
-                    // This helps prevent the "unanswered question" issue
                     userAnswers = Array(questions.length).fill().map(() => ({
                         userAnswer: '',
-                        isAnswered: false
+                        isAnswered: false,
+                        isCorrect: false
                     }));
 
                     // Start timer
@@ -987,22 +987,33 @@
         }
 
         function submitAllAnswers() {
-            // Save current answer before submitting (in case they're on a typing question)
-            if (questions[currentQuestion].type !== 'MCQ' && answerInput.value) {
-                saveUserAnswer(answerInput.value);
+            // Save current answer before submitting
+            if (questions[currentQuestion] && questions[currentQuestion].type !== 'MCQ') {
+                const currentInputValue = answerInput.value.trim();
+                if (currentInputValue) {
+                    saveUserAnswer(currentInputValue);
+                }
             }
 
-            // Check if user has answered all questions (looking for empty or missing answers)
-            const unanswered = userAnswers.findIndex(answer => !answer || !answer.isAnswered);
+            // Check if any questions are unanswered
+            const unansweredQuestions = [];
+            
+            for (let i = 0; i < userAnswers.length; i++) {
+                const answer = userAnswers[i];
+                if (!answer || !answer.isAnswered) {
+                    unansweredQuestions.push(i + 1);
+                }
+            }
 
-            if (unanswered !== -1) {
-                const confirmSubmit = confirm(`You haven't answered question ${unanswered + 1}. Do you want to submit anyway?`);
+            if (unansweredQuestions.length > 0) {
+                const confirmSubmit = confirm(`You haven't answered question(s) ${unansweredQuestions.join(', ')}. Do you want to submit anyway?`);
                 if (!confirmSubmit) {
-                    showQuestion(unanswered);
+                    showQuestion(unansweredQuestions[0] - 1);
                     return;
                 }
             }
 
+            // Finish the quiz
             finishQuiz();
         }
 
