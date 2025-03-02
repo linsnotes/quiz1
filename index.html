@@ -1000,22 +1000,17 @@
         }
 
         function takeScreenshot() {
-            // Get device pixel ratio
-            const pixelRatio = window.devicePixelRatio || 1;
-
-            // Set scale options for html2canvas
-            const options = {
-                scale: pixelRatio, // Adjust scale according to device pixel ratio
-                useCORS: true,     // Enable cross-origin images
-                logging: false,    // Disable logging
-                allowTaint: true   // Allow tainted canvas
-            };
-
-            html2canvas(resultScreen, options).then(canvas => {
-                // Create a link and download with high quality
+            html2canvas(resultScreen, {
+                backgroundColor: "#ffffff", // Ensure solid white background
+                scale: 2, // Higher scale for better quality
+                useCORS: true, // Handle cross-origin images if any
+                logging: false, // Disable logging
+                allowTaint: true, // Allow processing of cross-origin content
+                letterRendering: true, // Better text rendering
+            }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `Quiz_Results_${studentName.textContent.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
-                link.href = canvas.toDataURL('image/png', 1.0); // Use highest quality (1.0)
+                link.href = canvas.toDataURL('image/png', 1.0); // Maximum quality
                 link.click();
             });
         }
