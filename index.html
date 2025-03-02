@@ -1004,23 +1004,20 @@
         }
 
         function takeScreenshot() {
-            // Wait a bit for the fadeIn (0.5s) to finish
-            setTimeout(() => {
-                const computedBg = window.getComputedStyle(resultScreen).backgroundColor;
-                html2canvas(resultScreen, {
-                    backgroundColor: computedBg,
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
-                    allowTaint: true,
-                    letterRendering: true,
-                }).then(canvas => {
-                    const link = document.createElement('a');
-                    link.download = `Quiz_Results_${studentName.textContent.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
-                    link.href = canvas.toDataURL('image/png', 1.0);
-                    link.click();
-                });
-            }, 600); // ~100ms more than 0.5s fadeIn
+            const computedBg = window.getComputedStyle(resultScreen).backgroundColor;
+            html2canvas(resultScreen, {
+                backgroundColor: computedBg,
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                allowTaint: true,
+                letterRendering: true,
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `Quiz_Results_${studentName.textContent.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            });
         }
 
 
