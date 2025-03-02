@@ -246,7 +246,7 @@
             padding: 1rem;
             border-radius: var(--border-radius);
             margin-bottom: 1.5rem;
-            font-style: italic;
+            font-style: normal;
         }
 
         .mcq-options {
@@ -375,6 +375,36 @@
             border-top: 1px solid var(--gray-medium);
         }
 
+        /* Visitor counter styles */
+        #visitor-counter {
+            display: inline-block;
+            margin: 0.5rem auto 1rem;
+            padding: 0.4rem 1rem;
+            background-color: var(--gray-light);
+            border-radius: 20px;
+            font-size: 0.875rem;
+            color: var(--gray-dark);
+            transition: var(--transition);
+        }
+
+        #pageviews {
+            font-weight: 600;
+            color: var(--primary-color);
+            position: relative;
+        }
+
+        #pageviews.loading {
+            animation: pulse 1.5s infinite ease-in-out;
+            padding: 0;
+            display: inline;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -436,7 +466,7 @@
         <header id="appHeader">
             <h1>Quiz App</h1>
             <div id="visitor-counter">
-                Welcome! You’re visitor #<span id="pageviews">Loading...</span>
+                <span>Welcome!</span> <span id="pageviews" class="loading">Loading...</span> <span>visits</span>
             </div>
         </header>
 
@@ -1041,10 +1071,12 @@
                         const count = data.count.replace(/\s/g, '');
                         // Format it with commas, etc.
                         pv.innerText = new Intl.NumberFormat().format(count);
+                        pv.classList.remove('loading');
                     })
                     .catch((error) => {
                         // Fallback if something goes wrong
                         pv.innerText = '1';
+                        pv.classList.remove('loading');
                     });
             }
         });
