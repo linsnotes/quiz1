@@ -781,14 +781,14 @@
                     });
 
                     // Fallback to header names if available (for backward compatibility)
-                    rowData.no = rowData.no || row.No || row.no;
-                    rowData.question = rowData.question || row.Question || row.question;
-                    rowData.answer = rowData.answer || row.Answer || row.answer;
-                    rowData.type = rowData.type || row.Type || row['Question Type'] || row.type || row.questionType;
-                    rowData.mcqOptions = rowData.mcqOptions || row['MCQ Options'] || row.mcqOptions || row.options;
-                    rowData.readingMaterial = rowData.readingMaterial || row['Reading Material'] || row['Background Info'] || row.backgroundInfo || row.readingMaterial;
-                    rowData.hint = rowData.hint || row.Hint || row.hint;
-                    rowData.explanation = rowData.explanation || row.Explanation || row.explanation;
+                    rowData.no = rowData.no || row.No || row.no || '';
+                    rowData.question = rowData.question || row.Question || row.question || '';
+                    rowData.answer = rowData.answer || row.Answer || row.answer || '';
+                    rowData.type = rowData.type || row.Type || row['Question Type'] || row.type || row.questionType || 'Text';
+                    rowData.mcqOptions = rowData.mcqOptions || row['MCQ Options'] || row.mcqOptions || row.options || '';
+                    rowData.readingMaterial = rowData.readingMaterial || row['Reading Material'] || row['Background Info'] || row.backgroundInfo || row.readingMaterial || '';
+                    rowData.hint = rowData.hint || row.Hint || row.hint || '';
+                    rowData.explanation = rowData.explanation || row.Explanation || row.explanation || '';
 
                     return rowData;
                 });
@@ -817,10 +817,10 @@
             showHintBtn.textContent = 'Show Hint';
 
             // Set question text
-            questionText.textContent = question.question;
+            questionText.textContent = question.question || '';
 
             // Set reading material if available
-            if (question.readingMaterial && question.readingMaterial.trim() !== '') {
+            if (question.readingMaterial && String(question.readingMaterial).trim() !== '') {
                 backgroundInfo.textContent = question.readingMaterial;
                 backgroundInfo.style.display = 'block';
             } else {
@@ -828,8 +828,10 @@
             }
 
             // Set hint text
-            hintText.textContent = question.hint && question.hint.toLowerCase() !== "none" ?
-                question.hint : "No hints are provided for this question.";
+            const hintValue = question.hint || '';
+            hintText.textContent = hintValue && String(hintValue).trim() !== '' &&
+                String(hintValue).toLowerCase() !== "none" ?
+                hintValue : "No hints are provided for this question.";
 
             // Render question based on type
             if (question.type === 'MCQ') {
@@ -840,9 +842,9 @@
         }
 
         function renderMCQQuestion(question) {
-            // Split MCQ options
-            let options = question.mcqOptions.split('#');
-            const correctAnswer = question.answer;
+            // Split MCQ options and trim each one
+            let options = (question.mcqOptions || '').split('#').map(option => option.trim());
+            const correctAnswer = (question.answer || '').trim();
 
             // Create array of options with fixed A, B, C, D labels but shuffled content
             const shuffledOptions = [];
@@ -862,7 +864,7 @@
                 shuffledOptions.push({
                     letter: letters[i],
                     option: optionsCopy[i],
-                    isCorrect: optionsCopy[i].toLowerCase() === correctAnswer.toLowerCase()
+                    isCorrect: optionsCopy[i].toLowerCase().trim() === correctAnswer.toLowerCase().trim()
                 });
             }
 
@@ -886,7 +888,7 @@
 
                 // Check if this option was previously selected
                 if (userAnswers[currentQuestion] &&
-                    userAnswers[currentQuestion].userAnswer.toLowerCase() === optionObj.option.toLowerCase()) {
+                    userAnswers[currentQuestion].userAnswer.toLowerCase().trim() === optionObj.option.toLowerCase().trim()) {
                     optionElement.classList.add('selected');
                 }
 
@@ -924,29 +926,29 @@
             if (currentQuestion >= questions.length) return;
 
             const question = questions[currentQuestion];
+            const userAnswer = (answer || '').trim();
+            const correctAnswer = (question.answer || '').trim();
 
             // Check correctness
             let isCorrect = false;
-            const userAnswer = answer.trim();
-            const correctAnswer = question.answer;
 
             // For numerical answers, check if both can be parsed as numbers
             if (!isNaN(parseFloat(userAnswer)) && !isNaN(parseFloat(correctAnswer))) {
                 isCorrect = parseFloat(userAnswer) === parseFloat(correctAnswer);
             } else {
-                // Compare strings by ignoring case and trimming whitespace.
+                // Compare strings by ignoring case and trimming whitespace
                 isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
             }
 
             // Save user answer
             userAnswers[currentQuestion] = {
-                questionNo: question.no,
-                questionText: question.question,
+                questionNo: question.no || currentQuestion + 1,
+                questionText: question.question || '',
                 userAnswer,
-                correctAnswer: question.answer,
+                correctAnswer: correctAnswer,
                 isCorrect,
-                questionType: question.type,
-                explanation: question.explanation
+                questionType: question.type || 'Text',
+                explanation: question.explanation || ''
             };
         }
 
@@ -1052,13 +1054,14 @@
             });
         }
 
-
         function showReviewScreen() {
             // Clear previous content
             reviewContainer.innerHTML = '';
 
             // Create review items for each question
             userAnswers.forEach((answer, index) => {
+                const question = questions[index];
+
                 if (!answer) {
                     // Create a review item for unanswered questions
                     const reviewItem = document.createElement('div');
@@ -1066,16 +1069,24 @@
 
                     const questionHeader = document.createElement('div');
                     questionHeader.className = 'review-question-header';
-                    questionHeader.innerHTML = `<strong>Question ${index + 1}:</strong> ${questions[index].question}`;
+                    questionHeader.innerHTML = `<strong>Question ${index + 1}:</strong> ${question.question || ''}`;
 
                     const answerText = document.createElement('div');
                     answerText.className = 'review-answer incorrect';
-                    answerText.innerHTML = `<strong>Your Answer:</strong> No answer provided<br><strong>Correct Answer:</strong> ${questions[index].answer}`;
+                    answerText.innerHTML = `<strong>Your Answer:</strong> No answer provided<br><strong>Correct Answer:</strong> ${question.answer || ''}`;
 
                     const explanationDiv = document.createElement('div');
                     explanationDiv.className = 'review-explanation';
-                    const explanationText = questions[index].explanation && questions[index].explanation.toLowerCase() !== "none" ?
-                        questions[index].explanation : "No explanations are given for this question.";
+
+                    // Safely get explanation text
+                    let explanationText = "No explanations are given for this question.";
+                    if (question.explanation && typeof question.explanation === 'string') {
+                        const trimmedExplanation = question.explanation.trim();
+                        if (trimmedExplanation !== '' && trimmedExplanation.toLowerCase() !== 'none') {
+                            explanationText = trimmedExplanation;
+                        }
+                    }
+
                     explanationDiv.innerHTML = `<strong>Explanation:</strong> ${explanationText}`;
 
                     reviewItem.appendChild(questionHeader);
@@ -1091,20 +1102,28 @@
 
                 const questionHeader = document.createElement('div');
                 questionHeader.className = 'review-question-header';
-                questionHeader.innerHTML = `<strong>Question ${index + 1}:</strong> ${answer.questionText}`;
+                questionHeader.innerHTML = `<strong>Question ${index + 1}:</strong> ${answer.questionText || ''}`;
 
                 const answerText = document.createElement('div');
                 answerText.className = `review-answer ${answer.isCorrect ? 'correct' : 'incorrect'}`;
-                answerText.innerHTML = `<strong>Your Answer:</strong> ${answer.userAnswer}`;
+                answerText.innerHTML = `<strong>Your Answer:</strong> ${answer.userAnswer || ''}`;
 
                 if (!answer.isCorrect) {
-                    answerText.innerHTML += `<br><strong>Correct Answer:</strong> ${answer.correctAnswer}`;
+                    answerText.innerHTML += `<br><strong>Correct Answer:</strong> ${answer.correctAnswer || ''}`;
                 }
 
                 const explanationDiv = document.createElement('div');
                 explanationDiv.className = 'review-explanation';
-                const explanationText = answer.explanation && answer.explanation.toLowerCase() !== "none" ?
-                    answer.explanation : "No explanations are given for this question.";
+
+                // Safely get explanation text
+                let explanationText = "No explanations are given for this question.";
+                if (answer.explanation && typeof answer.explanation === 'string') {
+                    const trimmedExplanation = answer.explanation.trim();
+                    if (trimmedExplanation !== '' && trimmedExplanation.toLowerCase() !== 'none') {
+                        explanationText = trimmedExplanation;
+                    }
+                }
+
                 explanationDiv.innerHTML = `<strong>Explanation:</strong> ${explanationText}`;
 
                 reviewItem.appendChild(questionHeader);
