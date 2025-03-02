@@ -417,6 +417,30 @@
             }
         }
 
+        /* Form submission status styles */
+        .form-submission-status {
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .form-submission-status.visible {
+            opacity: 1;
+        }
+
+        .form-submission-status.success {
+            background-color: rgba(52, 199, 89, 0.2);
+            color: var(--success-color);
+        }
+
+        .form-submission-status.error {
+            background-color: rgba(255, 59, 48, 0.2);
+            color: var(--error-color);
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -527,6 +551,11 @@
                 <input type="text" id="sheetIdInput" value="1QfXLwOvU4XqkxBlQn3xpMrTVb0ydG4uSbjf1hKumwuw" placeholder="Enter the Quiz ID">
                 <p>Please obtain the Quiz ID from your teacher.</p>
             </div>
+            <div class="input-group">
+                <label for="formUrlInput">Google Form URL (optional)</label>
+                <input type="text" id="formUrlInput" placeholder="Enter Google Form URL for result submission">
+                <p>Add a Google Form URL to automatically submit quiz results.</p>
+            </div>
             <div class="center-btn">
                 <button id="startQuizBtn" class="btn">Start Quiz</button>
             </div>
@@ -592,6 +621,9 @@
                     <div class="result-detail-label">Time Spent</div>
                 </div>
             </div>
+            <div id="formSubmissionStatus" class="form-submission-status">
+                Submitting results to Google Form...
+            </div>
             <div class="btn-group">
                 <button id="screenshotBtn" class="btn">Screenshot Result</button>
                 <button id="reviewBtn" class="btn">Review All Questions</button>
@@ -610,7 +642,7 @@
     </div>
 
     <script>
-       // DOM Elements
+        // DOM Elements
         const appHeader = document.getElementById('appHeader');
         const welcomeScreen = document.getElementById('welcomeScreen');
         const loadingScreen = document.getElementById('loadingScreen');
@@ -620,6 +652,7 @@
 
         const nameInput = document.getElementById('nameInput');
         const sheetIdInput = document.getElementById('sheetIdInput');
+        const formUrlInput = document.getElementById('formUrlInput');
         const startQuizBtn = document.getElementById('startQuizBtn');
 
         const currentQuestionNumber = document.getElementById('currentQuestionNumber');
@@ -644,6 +677,7 @@
         const correctAnswersCount = document.getElementById('correctAnswersCount');
         const incorrectAnswersCount = document.getElementById('incorrectAnswersCount');
         const timeSpent = document.getElementById('timeSpent');
+        const formSubmissionStatus = document.getElementById('formSubmissionStatus');
         const screenshotBtn = document.getElementById('screenshotBtn');
         const reviewBtn = document.getElementById('reviewBtn');
         const homeBtn = document.getElementById('homeBtn');
@@ -661,6 +695,7 @@
         let quizCompleted = false;
         let hintVisible = false;
         let quizTimeLimit = null; // Global time limit in minutes
+        let googleFormUrl = null; // Store the Google Form URL
 
         // Event Listeners
         startQuizBtn.addEventListener('click', startQuiz);
@@ -697,6 +732,7 @@
         async function startQuiz() {
             const name = nameInput.value.trim();
             const sheetId = sheetIdInput.value.trim();
+            googleFormUrl = formUrlInput.value.trim(); // Store the Google Form URL
 
             if (!name) {
                 alert('Please enter your name. Your name is used solely for your quiz summary and is removed when you refresh the page.');
@@ -1108,6 +1144,95 @@
 
             // Show result screen
             showScreen(resultScreen);
+
+            // Submit to Google Form if URL was provided
+            if (googleFormUrl && googleFormUrl.trim() !== '') {
+                submitToGoogleForm(
+                    nameInput.value.trim(),
+                    correct,
+                    questions.length,
+                    totalAttempted,
+                    incorrect,
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+                );
+            } else {
+                // Hide the form submission status if no URL was provided
+                formSubmissionStatus.classList.remove('visible');
+            }
+        }
+
+        async function submitToGoogleForm(name, correct, total, attempted, incorrect, timeSpent) {
+            try {
+                // Show submission status
+                formSubmissionStatus.textContent = "Submitting results to Google Form...";
+                formSubmissionStatus.className = "form-submission-status visible";
+
+                // Extract the form ID from the Google Form URL
+                const formUrl = googleFormUrl;
+                let formId = '';
+
+                if (formUrl.includes('/forms/d/e/')) {
+                    // New format URL
+                    const match = formUrl.match(/\/forms\/d\/e\/([^\/]+)/);
+                    if (match && match[1]) {
+                        formId = match[1];
+                    }
+                } else if (formUrl.includes('/forms/d/')) {
+                    // Old format URL
+                    const match = formUrl.match(/\/forms\/d\/([^\/]+)/);
+                    if (match && match[1]) {
+                        formId = match[1];
+                    }
+                }
+
+                if (!formId) {
+                    throw new Error("Invalid Google Form URL format");
+                }
+
+                // Construct submission URL
+                const submissionUrl = `https://docs.google.com/forms/d/e/${formId}/formResponse`;
+
+                // Create a hidden form to submit
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = submissionUrl;
+                form.target = '_blank';
+                form.style.display = 'none';
+
+                // Add fields
+                // Note: You'll need to replace these with the actual field names from your Google Form
+                // These are examples and will need to be adjusted based on the actual form structure
+                const entryFields = {
+                    'entry.1363432310': name,               // Replace with actual entry ID for name
+                    'entry.1294516960': correct.toString(), // Replace with actual entry ID for correct answers
+                    'entry.1917593367': total.toString(),   // Replace with actual entry ID for total questions
+                    'entry.2125005932 ': attempted.toString(), // Replace with actual entry ID for attempted questions
+                    'entry.89512651': incorrect.toString(), // Replace with actual entry ID for incorrect answers
+                    'entry.1555364661': timeSpent          // Replace with actual entry ID for time spent
+                };
+
+                // Add form fields
+                for (const [key, value] of Object.entries(entryFields)) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = key;
+                    input.value = value;
+                    form.appendChild(input);
+                }
+
+                // Add form to document, submit it, and remove it
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+
+                // Update status with success message
+                formSubmissionStatus.textContent = "Results submitted successfully!";
+                formSubmissionStatus.className = "form-submission-status visible success";
+            } catch (error) {
+                console.error('Error submitting to Google Form:', error);
+                formSubmissionStatus.textContent = "Failed to submit results. Please take a screenshot instead.";
+                formSubmissionStatus.className = "form-submission-status visible error";
+            }
         }
 
         function takeScreenshot() {
@@ -1221,6 +1346,8 @@
             quizCompleted = false;
             nameInput.value = '';
             sheetIdInput.value = '';
+            formUrlInput.value = '';
+            googleFormUrl = null;
             quizTimeLimit = null;
 
             // Stop timer if running
