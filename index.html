@@ -839,7 +839,7 @@
             questionText.textContent = question.question || '';
 
             // Set reading material if available
-            if (question.readingMaterial && String(question.readingMaterial).trim() !== '') {
+            if (question.readingMaterial && String(question.readingMaterial).trim() !== 'None') {
                 readingMaterial.textContent = question.readingMaterial;
                 readingMaterial.style.display = 'block';
             } else {
