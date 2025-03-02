@@ -710,8 +710,12 @@
                     totalQuestions.textContent = questions.length;
                     totalQuestionsResult.textContent = questions.length;
 
-                    // Initialize user answers array
-                    userAnswers = Array(questions.length).fill(null);
+                    // Initialize user answers array with empty objects instead of null
+                    // This helps prevent the "unanswered question" issue
+                    userAnswers = Array(questions.length).fill().map(() => ({
+                        userAnswer: '',
+                        isAnswered: false
+                    }));
 
                     // Start timer
                     startTime = new Date();
@@ -843,7 +847,7 @@
 
         function renderMCQQuestion(question) {
             // Split MCQ options and trim each one
-            let options = (question.mcqOptions || '').split('#').map(option => option.trim());
+            let options = (question.mcqOptions || '').split('#').map(option => option.trim()).filter(option => option !== '');
             const correctAnswer = (question.answer || '').trim();
 
             // Create array of options with fixed A, B, C, D labels but shuffled content
@@ -888,6 +892,7 @@
 
                 // Check if this option was previously selected
                 if (userAnswers[currentQuestion] &&
+                    userAnswers[currentQuestion].userAnswer &&
                     userAnswers[currentQuestion].userAnswer.toLowerCase().trim() === optionObj.option.toLowerCase().trim()) {
                     optionElement.classList.add('selected');
                 }
@@ -940,7 +945,7 @@
                 isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
             }
 
-            // Save user answer
+            // Save user answer - mark as answered if they've provided a non-empty answer
             userAnswers[currentQuestion] = {
                 questionNo: question.no || currentQuestion + 1,
                 questionText: question.question || '',
@@ -948,7 +953,8 @@
                 correctAnswer: correctAnswer,
                 isCorrect,
                 questionType: question.type || 'Text',
-                explanation: question.explanation || ''
+                explanation: question.explanation || '',
+                isAnswered: userAnswer !== ''
             };
         }
 
@@ -981,8 +987,13 @@
         }
 
         function submitAllAnswers() {
-            // Check if user has answered all questions
-            const unanswered = userAnswers.findIndex(answer => answer === null);
+            // Save current answer before submitting (in case they're on a typing question)
+            if (questions[currentQuestion].type !== 'MCQ' && answerInput.value) {
+                saveUserAnswer(answerInput.value);
+            }
+
+            // Check if user has answered all questions (looking for empty or missing answers)
+            const unanswered = userAnswers.findIndex(answer => !answer || !answer.isAnswered);
 
             if (unanswered !== -1) {
                 const confirmSubmit = confirm(`You haven't answered question ${unanswered + 1}. Do you want to submit anyway?`);
@@ -1015,8 +1026,8 @@
             quizCompleted = true;
 
             // Calculate results
-            const totalAttempted = userAnswers.filter(answer => answer !== null).length;
-            const correct = userAnswers.filter(answer => answer && answer.isCorrect).length;
+            const totalAttempted = userAnswers.filter(answer => answer && answer.isAnswered).length;
+            const correct = userAnswers.filter(answer => answer && answer.isCorrect && answer.isAnswered).length;
             const incorrect = totalAttempted - correct;
 
             // Update result screen
@@ -1062,7 +1073,7 @@
             userAnswers.forEach((answer, index) => {
                 const question = questions[index];
 
-                if (!answer) {
+                if (!answer || !answer.isAnswered) {
                     // Create a review item for unanswered questions
                     const reviewItem = document.createElement('div');
                     reviewItem.className = 'review-question incorrect';
