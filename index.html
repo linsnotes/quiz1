@@ -742,34 +742,30 @@
             }
         }
 
-        async function fetchQuestionData(sheetId) {
+                async function fetchQuestionData(sheetId) {
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
 
             try {
                 const response = await fetch(url);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch data');
+                    throw new Error('Failed to fetch spreadsheet');
                 }
 
                 const arrayBuffer = await response.arrayBuffer();
                 const data = new Uint8Array(arrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                // Get the first sheet
+                // Get the first sheet and convert to an array of arrays
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert the sheet to an array of rows.
-                // The first row (index 0) is assumed to be the header.
                 const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // If there are fewer than 2 rows, there is no data (since row 1 is header)
                 if (!rows || rows.length < 2) {
                     return [];
                 }
 
-                // Skip the header row.
-                const dataRows = rows.slice(1);
-
-                // Define the expected column order.
+                // Define the expected column order
                 const expectedOrder = [
                     'no',              // Question number
                     'question',        // Question text
@@ -781,18 +777,24 @@
                     'explanation'      // Explanation
                 ];
 
-                // Map each row to an object using the expected order.
-                return dataRows.map(row => {
+                const questions = [];
+                // Loop through rows starting from index 1 (row 2 in the sheet)
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    // Stop processing if the row is completely empty
+                    if (row.every(cell => cell === undefined || cell === "")) {
+                        break;
+                    }
                     const rowData = {};
-                    expectedOrder.forEach((field, index) => {
-                        rowData[field] = row[index] !== undefined ? row[index] : '';
+                    expectedOrder.forEach((key, index) => {
+                        rowData[key] = row[index] || "";
                     });
-                    // Default to 'Text' if no type is provided.
-                    if (!rowData.type) rowData.type = 'Text';
-                    return rowData;
-                });
+                    questions.push(rowData);
+                }
+
+                return questions;
             } catch (error) {
-                console.error('Error fetching or parsing the data:', error);
+                console.error('Error fetching or parsing the spreadsheet:', error);
                 throw error;
             }
         }
