@@ -704,18 +704,48 @@
 
                 // Convert to JSON
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                // Normalize the data to ensure consistent field names
-                return jsonData.map(row => ({
-                    no: row.No || row.no,
-                    question: row.Question || row.question,
-                    answer: row.Answer || row.answer,
-                    type: row.Type || row['Question Type'] || row.type || row.questionType,
-                    mcqOptions: row['MCQ Options'] || row.mcqOptions || row.options,
-                    backgroundInfo: row['Background Info'] || row.backgroundInfo,
-                    hint: row.Hint || row.hint,
-                    explanation: row.Explanation || row.explanation
-                }));
+                
+                // If no data, return empty array
+                if (!jsonData || jsonData.length === 0) {
+                    return [];
+                }
+                
+                // Define the expected column order
+                const expectedOrder = [
+                    'no',              // Question number
+                    'question',        // Question text
+                    'answer',          // Answer
+                    'type',            // Question type
+                    'mcqOptions',      // Multiple choice options
+                    'readingMaterial', // Reading material (formerly backgroundInfo)
+                    'hint',            // Hint
+                    'explanation'      // Explanation
+                ];
+                
+                // Map the data based on column position
+                return jsonData.map(row => {
+                    const rowData = {};
+                    const rowKeys = Object.keys(row);
+                    
+                    // Map by position first
+                    expectedOrder.forEach((field, index) => {
+                        if (index < rowKeys.length) {
+                            rowData[field] = row[rowKeys[index]];
+                        }
+                    });
+                    
+                    // Fallback to header names if available (for backward compatibility)
+                    rowData.no = rowData.no || row.No || row.no;
+                    rowData.question = rowData.question || row.Question || row.question;
+                    rowData.answer = rowData.answer || row.Answer || row.answer;
+                    rowData.type = rowData.type || row.Type || row['Question Type'] || row.type || row.questionType;
+                    rowData.mcqOptions = rowData.mcqOptions || row['MCQ Options'] || row.mcqOptions || row.options;
+                    rowData.readingMaterial = rowData.readingMaterial || row['Reading Material'] || row['Background Info'] || row.backgroundInfo || row.readingMaterial;
+                    rowData.hint = rowData.hint || row.Hint || row.hint;
+                    rowData.explanation = rowData.explanation || row.Explanation || row.explanation;
+                    
+                    return rowData;
+                });
             } catch (error) {
                 console.error('Error fetching or parsing the spreadsheet:', error);
                 throw error;
@@ -743,9 +773,9 @@
             // Set question text
             questionText.textContent = question.question;
 
-            // Set background info if available
-            if (question.backgroundInfo && question.backgroundInfo.trim() !== '') {
-                backgroundInfo.textContent = question.backgroundInfo;
+            // Set reading material if available
+            if (question.readingMaterial && question.readingMaterial.trim() !== '') {
+                backgroundInfo.textContent = question.readingMaterial;
                 backgroundInfo.style.display = 'block';
             } else {
                 backgroundInfo.style.display = 'none';
