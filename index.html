@@ -732,12 +732,12 @@
                     showQuestion(0);
                     showScreen(questionScreen);
                 } else {
-                    alert('No questions found in the sheet. Please check the Sheet ID and try again.');
+                    alert('No questions found. Please ensure the Quiz ID is correct and try again.');
                     showScreen(welcomeScreen);
                 }
             } catch (error) {
                 console.error('Error fetching questions:', error);
-                alert('Error loading questions. Please check the Sheet ID and try again.');
+                alert('Error loading questions. Please ensure the Quiz ID is correct and try again.');
                 showScreen(welcomeScreen);
             }
         }
