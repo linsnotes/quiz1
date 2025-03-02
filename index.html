@@ -839,12 +839,14 @@
             questionText.textContent = question.question || '';
 
             // Set reading material if available
-            if (question.readingMaterial && String(question.readingMaterial).trim() !== 'none') {
+            const rm = String(question.readingMaterial).trim().toLowerCase();
+            if (question.readingMaterial && !["", "none", "na"].includes(rm)) {
                 readingMaterial.textContent = question.readingMaterial;
                 readingMaterial.style.display = 'block';
             } else {
                 readingMaterial.style.display = 'none';
             }
+
 
             // Set hint text
             const hintValue = question.hint || '';
