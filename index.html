@@ -46,6 +46,10 @@
             margin-bottom: 2rem;
         }
 
+        header.hidden {
+            display: none;
+        }
+
         h1 {
             font-size: 2.5rem;
             font-weight: 600;
@@ -153,6 +157,13 @@
             gap: 1rem;
             margin-top: 2rem;
             flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .center-btn {
+            display: flex;
+            justify-content: center;
+            width: 100%;
         }
 
         .navigation-buttons {
@@ -200,6 +211,16 @@
         .timer {
             font-size: 0.875rem;
             color: var(--gray-dark);
+        }
+
+        .submit-wrapper {
+            text-align: center;
+        }
+
+        .submit-header-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 20px;
         }
 
         .question-text {
@@ -373,6 +394,21 @@
                 flex-direction: column;
                 gap: 1rem;
             }
+
+            .question-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .submit-wrapper {
+                margin-top: 0.5rem;
+                width: 100%;
+            }
+
+            .submit-header-btn {
+                width: 100%;
+            }
         }
 
         #studentName {
@@ -382,7 +418,7 @@
 </head>
 <body>
     <div class="container">
-        <header>
+        <header id="appHeader">
             <h1>Quiz App</h1>
         </header>
 
@@ -397,7 +433,9 @@
                 <input type="text" id="sheetIdInput" placeholder="Enter the Google Sheet ID">
                 <p>Example: 13U28NBgg5YvoYXho-JIWteiuogk8jnqvqKB1t_ODjk0</p>
             </div>
-            <button id="startQuizBtn" class="btn">Start Quiz</button>
+            <div class="center-btn">
+                <button id="startQuizBtn" class="btn">Start Quiz</button>
+            </div>
         </div>
 
         <div id="loadingScreen" class="screen">
@@ -410,6 +448,9 @@
         <div id="questionScreen" class="screen">
             <div class="question-header">
                 <div class="question-number">Question <span id="currentQuestionNumber">1</span> of <span id="totalQuestions">10</span></div>
+                <div class="submit-wrapper">
+                    <button id="submitAllBtn" class="btn submit-header-btn">Submit All Answers</button>
+                </div>
                 <div class="timer">Time: <span id="timerValue">00:00</span></div>
             </div>
             <div class="question-card">
@@ -428,9 +469,6 @@
                     <button id="showHintBtn" class="btn btn-secondary">Show Hint</button>
                     <button id="nextQuestionBtn" class="btn btn-secondary">Next</button>
                 </div>
-            </div>
-            <div class="btn-group">
-                <button id="submitAllBtn" class="btn">Submit All Answers</button>
             </div>
         </div>
 
@@ -461,7 +499,7 @@
             <div class="btn-group">
                 <button id="screenshotBtn" class="btn">Screenshot Result</button>
                 <button id="reviewBtn" class="btn">Review All Questions</button>
-                <button id="homeBtn" class="btn btn-secondary">Back to Home</button>
+                <button id="homeBtn" class="btn">Back to Home</button>
             </div>
         </div>
 
@@ -470,13 +508,14 @@
             <div id="reviewContainer"></div>
             <div class="btn-group">
                 <button id="backToResultsBtn" class="btn">Back to Results</button>
-                <button id="reviewHomeBtn" class="btn btn-secondary">Back to Home</button>
+                <button id="reviewHomeBtn" class="btn">Back to Home</button>
             </div>
         </div>
     </div>
 
     <script>
         // DOM Elements
+        const appHeader = document.getElementById('appHeader');
         const welcomeScreen = document.getElementById('welcomeScreen');
         const loadingScreen = document.getElementById('loadingScreen');
         const questionScreen = document.getElementById('questionScreen');
@@ -524,12 +563,13 @@
         let timerInterval;
         let userAnswers = [];
         let quizCompleted = false;
+        let hintVisible = false;
 
         // Event Listeners
         startQuizBtn.addEventListener('click', startQuiz);
         prevQuestionBtn.addEventListener('click', showPreviousQuestion);
         nextQuestionBtn.addEventListener('click', showNextQuestion);
-        showHintBtn.addEventListener('click', showHint);
+        showHintBtn.addEventListener('click', toggleHint);
         submitAllBtn.addEventListener('click', submitAllAnswers);
         screenshotBtn.addEventListener('click', takeScreenshot);
         reviewBtn.addEventListener('click', showReviewScreen);
@@ -541,6 +581,13 @@
         function showScreen(screen) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             screen.classList.add('active');
+            
+            // Hide the header for all screens except welcome screen
+            if (screen === welcomeScreen) {
+                appHeader.classList.remove('hidden');
+            } else {
+                appHeader.classList.add('hidden');
+            }
         }
 
         async function startQuiz() {
@@ -640,6 +687,8 @@
             mcqOptions.innerHTML = '';
             typingAnswer.style.display = 'none';
             hintContainer.classList.remove('active');
+            hintVisible = false;
+            showHintBtn.textContent = 'Show Hint';
             
             // Set question text
             questionText.textContent = question.question;
@@ -786,8 +835,16 @@
             showQuestion(currentQuestion + 1);
         }
 
-        function showHint() {
-            hintContainer.classList.add('active');
+        function toggleHint() {
+            hintVisible = !hintVisible;
+            
+            if (hintVisible) {
+                hintContainer.classList.add('active');
+                showHintBtn.textContent = 'Hide Hint';
+            } else {
+                hintContainer.classList.remove('active');
+                showHintBtn.textContent = 'Show Hint';
+            }
         }
 
         function submitAllAnswers() {
