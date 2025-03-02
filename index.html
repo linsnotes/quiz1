@@ -400,9 +400,17 @@
         }
 
         @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
         }
 
         @media (max-width: 768px) {
@@ -468,7 +476,8 @@
             <div id="visitor-counter">
                 <span>Welcome!</span> <span id="pageviews" class="loading">Loading...</span> <span>visits</span>
             </div>
-            <p>This website runs entirely in your web browser. No personal data is collected or stored on any server. Your name is used solely for your quiz summary and is removed when you refresh the page.</p>
+            <p>This website runs entirely in your web browser. No personal data is collected or stored on any server.
+                Your name is used solely for your quiz summary and is removed when you refresh the page.</p>
         </header>
 
         <div id="welcomeScreen" class="screen active">
@@ -705,12 +714,12 @@
 
                 // Convert to JSON
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                
+
                 // If no data, return empty array
                 if (!jsonData || jsonData.length === 0) {
                     return [];
                 }
-                
+
                 // Define the expected column order
                 const expectedOrder = [
                     'no',              // Question number
@@ -722,19 +731,19 @@
                     'hint',            // Hint
                     'explanation'      // Explanation
                 ];
-                
+
                 // Map the data based on column position
                 return jsonData.map(row => {
                     const rowData = {};
                     const rowKeys = Object.keys(row);
-                    
+
                     // Map by position first
                     expectedOrder.forEach((field, index) => {
                         if (index < rowKeys.length) {
                             rowData[field] = row[rowKeys[index]];
                         }
                     });
-                    
+
                     // Fallback to header names if available (for backward compatibility)
                     rowData.no = rowData.no || row.No || row.no;
                     rowData.question = rowData.question || row.Question || row.question;
@@ -744,7 +753,7 @@
                     rowData.readingMaterial = rowData.readingMaterial || row['Reading Material'] || row['Background Info'] || row.backgroundInfo || row.readingMaterial;
                     rowData.hint = rowData.hint || row.Hint || row.hint;
                     rowData.explanation = rowData.explanation || row.Explanation || row.explanation;
-                    
+
                     return rowData;
                 });
             } catch (error) {
@@ -783,7 +792,7 @@
             }
 
             // Set hint text
-            hintText.textContent = question.hint && question.hint.toLowerCase() !== "none" ? 
+            hintText.textContent = question.hint && question.hint.toLowerCase() !== "none" ?
                 question.hint : "No hints are provided for this question.";
 
             // Render question based on type
@@ -991,10 +1000,22 @@
         }
 
         function takeScreenshot() {
-            html2canvas(resultScreen).then(canvas => {
+            // Get device pixel ratio
+            const pixelRatio = window.devicePixelRatio || 1;
+
+            // Set scale options for html2canvas
+            const options = {
+                scale: pixelRatio, // Adjust scale according to device pixel ratio
+                useCORS: true,     // Enable cross-origin images
+                logging: false,    // Disable logging
+                allowTaint: true   // Allow tainted canvas
+            };
+
+            html2canvas(resultScreen, options).then(canvas => {
+                // Create a link and download with high quality
                 const link = document.createElement('a');
                 link.download = `Quiz_Results_${studentName.textContent.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
-                link.href = canvas.toDataURL();
+                link.href = canvas.toDataURL('image/png', 1.0); // Use highest quality (1.0)
                 link.click();
             });
         }
@@ -1020,7 +1041,7 @@
 
                     const explanationDiv = document.createElement('div');
                     explanationDiv.className = 'review-explanation';
-                    const explanationText = questions[index].explanation && questions[index].explanation.toLowerCase() !== "none" ? 
+                    const explanationText = questions[index].explanation && questions[index].explanation.toLowerCase() !== "none" ?
                         questions[index].explanation : "No explanations are given for this question.";
                     explanationDiv.innerHTML = `<strong>Explanation:</strong> ${explanationText}`;
 
@@ -1049,7 +1070,7 @@
 
                 const explanationDiv = document.createElement('div');
                 explanationDiv.className = 'review-explanation';
-                const explanationText = answer.explanation && answer.explanation.toLowerCase() !== "none" ? 
+                const explanationText = answer.explanation && answer.explanation.toLowerCase() !== "none" ?
                     answer.explanation : "No explanations are given for this question.";
                 explanationDiv.innerHTML = `<strong>Explanation:</strong> ${explanationText}`;
 
