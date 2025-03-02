@@ -245,7 +245,7 @@
             margin-bottom: 1.5rem;
         }
 
-        .background-info {
+        .reading-material {
             background-color: var(--gray-light);
             padding: 1rem;
             border-radius: var(--border-radius);
@@ -549,7 +549,7 @@
                 <div class="timer">Time: <span id="timerValue">00:00</span></div>
             </div>
             <div class="question-card">
-                <div id="backgroundInfo" class="background-info" style="display: none;"></div>
+                <div id="readingMaterial" class="reading-material" style="display: none;"></div>
                 <div id="questionText" class="question-text"></div>
                 <div id="mcqOptions" class="mcq-options"></div>
                 <div id="typingAnswer" class="typing-answer" style="display: none;">
@@ -625,7 +625,7 @@
         const currentQuestionNumber = document.getElementById('currentQuestionNumber');
         const totalQuestions = document.getElementById('totalQuestions');
         const timerValue = document.getElementById('timerValue');
-        const backgroundInfo = document.getElementById('backgroundInfo');
+        const readingMaterial = document.getElementById('readingMaterial');
         const questionText = document.getElementById('questionText');
         const mcqOptions = document.getElementById('mcqOptions');
         const typingAnswer = document.getElementById('typingAnswer');
@@ -742,7 +742,7 @@
             }
         }
 
-        async function fetchQuestionData(sheetId) {
+                async function fetchQuestionData(sheetId) {
             const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx`;
 
             try {
@@ -755,15 +755,13 @@
                 const data = new Uint8Array(arrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
 
-                // Get the first sheet
+                // Get the first sheet and convert to an array of arrays
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
+                const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                // Convert to JSON
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-                // If no data, return empty array
-                if (!jsonData || jsonData.length === 0) {
+                // If there are fewer than 2 rows, there is no data (since row 1 is header)
+                if (!rows || rows.length < 2) {
                     return [];
                 }
 
@@ -774,40 +772,33 @@
                     'answer',          // Answer
                     'type',            // Question type
                     'mcqOptions',      // Multiple choice options
-                    'readingMaterial', // Reading material (formerly backgroundInfo)
+                    'readingMaterial', // Reading material
                     'hint',            // Hint
                     'explanation'      // Explanation
                 ];
 
-                // Map the data based on column position
-                return jsonData.map(row => {
+                const questions = [];
+                // Loop through rows starting from index 1 (row 2 in the sheet)
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    // Stop processing if the row is completely empty
+                    if (row.every(cell => cell === undefined || cell === "")) {
+                        break;
+                    }
                     const rowData = {};
-                    const rowKeys = Object.keys(row);
-
-                    // Map by position first
-                    expectedOrder.forEach((field, index) => {
-                        if (index < rowKeys.length) {
-                            rowData[field] = row[rowKeys[index]];
-                        }
+                    expectedOrder.forEach((key, index) => {
+                        rowData[key] = row[index] || "";
                     });
+                    questions.push(rowData);
+                }
 
-                    // Fallback to header names if available (for backward compatibility)
-                    rowData.no = rowData.no || row.No || row.no || '';
-                    rowData.question = rowData.question || row.Question || row.question || '';
-                    rowData.answer = rowData.answer || row.Answer || row.answer || '';
-                    rowData.type = rowData.type || row.Type || row['Question Type'] || row.type || row.questionType || 'Text';
-                    rowData.mcqOptions = rowData.mcqOptions || row['MCQ Options'] || row.mcqOptions || row.options || '';
-                    rowData.readingMaterial = rowData.readingMaterial || row['Reading Material'] || row['Background Info'] || row.backgroundInfo || row.readingMaterial || '';
-                    rowData.hint = rowData.hint || row.Hint || row.hint || '';
-                    rowData.explanation = rowData.explanation || row.Explanation || row.explanation || '';
-
-                    return rowData;
-                });
+                return questions;
             } catch (error) {
                 console.error('Error fetching or parsing the spreadsheet:', error);
                 throw error;
             }
         }
+
 
         function showQuestion(index) {
             // Save current answer before moving to another question
@@ -839,12 +830,15 @@
             questionText.textContent = question.question || '';
 
             // Set reading material if available
-            if (question.readingMaterial && String(question.readingMaterial).trim() !== '') {
-                backgroundInfo.textContent = question.readingMaterial;
-                backgroundInfo.style.display = 'block';
+            const rm = String(question.readingMaterial || "").trim().toLowerCase();
+            if (!["", "none", "na"].includes(rm)) {
+                readingMaterial.textContent = question.readingMaterial;
+                readingMaterial.style.display = 'block';
             } else {
-                backgroundInfo.style.display = 'none';
+                readingMaterial.style.display = 'none';
             }
+
+
 
             // Set hint text
             const hintValue = question.hint || '';
