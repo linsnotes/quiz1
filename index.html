@@ -909,10 +909,18 @@
         }
 
         function showPreviousQuestion() {
+            if (currentQuestion === 0) {
+                alert("This is the first question.");
+                return;
+            }
             showQuestion(currentQuestion - 1);
         }
 
         function showNextQuestion() {
+            if (currentQuestion === questions.length - 1) {
+                alert("This is the last question. If you have completed all questions, you can click the 'Submit All Answers' button to end the quiz.");
+                return;
+            }
             showQuestion(currentQuestion + 1);
         }
 
