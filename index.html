@@ -934,8 +934,8 @@
             if (!isNaN(parseFloat(userAnswer)) && !isNaN(parseFloat(correctAnswer))) {
                 isCorrect = parseFloat(userAnswer) === parseFloat(correctAnswer);
             } else {
-                // Case-insensitive string comparison
-                isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+                // Compare strings by ignoring case and trimming whitespace.
+                isCorrect = userAnswer.toLowerCase().trim() === correctAnswer.toLowerCase().trim();
             }
 
             // Save user answer
