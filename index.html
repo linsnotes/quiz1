@@ -1173,27 +1173,7 @@
         async function submitQuizData(quizData) {
             if (!webAppLink) return false;
 
-            // First try using fetch (modern, cleaner approach with CORS headers)
-            try {
-                const response = await fetch(webAppLink, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(quizData)
-                });
-
-                if (response.ok) {
-                    console.log("Quiz submitted successfully using fetch");
-                    return true;
-                }
-                console.log("Fetch request failed, falling back to form submission");
-            } catch (error) {
-                console.error('Error with fetch submission:', error);
-                console.log("Falling back to form submission");
-            }
-
-            // Fallback to form submission (works even with CORS issues)
+            // Skip fetch and use form submission directly
             return new Promise((resolve, reject) => {
                 try {
                     // Create an invisible form
@@ -1223,17 +1203,6 @@
                     iframe.onload = () => {
                         console.log("Quiz submitted successfully using form");
                         resolve(true);
-                        // Clean up
-                        setTimeout(() => {
-                            document.body.removeChild(form);
-                            document.body.removeChild(iframe);
-                        }, 1000);
-                    };
-
-                    // Handle errors
-                    iframe.onerror = () => {
-                        console.error("Form submission failed");
-                        reject(false);
                         // Clean up
                         setTimeout(() => {
                             document.body.removeChild(form);
