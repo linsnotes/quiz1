@@ -403,6 +403,17 @@
             display: inline;
         }
 
+        /* New style for submission notification */
+        .submission-notification {
+            background-color: var(--success-color);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+
         @keyframes pulse {
             0% {
                 opacity: 0.6;
@@ -532,6 +543,21 @@
             </div>
         </div>
 
+        <!-- New screen for Google Web App link input -->
+        <div id="webAppLinkScreen" class="screen">
+            <h2>Submit Quiz Results</h2>
+            <p>If your teacher provided a Google Web App link, you can submit your quiz results directly to them.</p>
+            <div class="input-group">
+                <label for="webAppLinkInput">Google Web App Link (Optional)</label>
+                <input type="text" id="webAppLinkInput" placeholder="Paste Google Web App link here">
+                <p>This link will be used to send your quiz results to your teacher.</p>
+            </div>
+            <div class="btn-group">
+                <button id="skipWebAppLinkBtn" class="btn btn-secondary">Skip</button>
+                <button id="confirmWebAppLinkBtn" class="btn" disabled>OK</button>
+            </div>
+        </div>
+
         <div id="loadingScreen" class="screen">
             <div class="loading">
                 <div class="spinner"></div>
@@ -568,6 +594,9 @@
         </div>
 
         <div id="resultScreen" class="screen">
+            <div id="submissionNotification" class="submission-notification" style="display: none;">
+                Quiz data has been submitted to teacher.
+            </div>
             <div class="result-summary">
                 <h2>Quiz Results</h2>
                 <p>Well done, <span id="studentName"></span>!</p>
@@ -617,6 +646,12 @@
         const questionScreen = document.getElementById('questionScreen');
         const resultScreen = document.getElementById('resultScreen');
         const reviewScreen = document.getElementById('reviewScreen');
+        // New DOM elements for Web App link screen
+        const webAppLinkScreen = document.getElementById('webAppLinkScreen');
+        const webAppLinkInput = document.getElementById('webAppLinkInput');
+        const skipWebAppLinkBtn = document.getElementById('skipWebAppLinkBtn');
+        const confirmWebAppLinkBtn = document.getElementById('confirmWebAppLinkBtn');
+        const submissionNotification = document.getElementById('submissionNotification');
 
         const nameInput = document.getElementById('nameInput');
         const sheetIdInput = document.getElementById('sheetIdInput');
@@ -661,6 +696,8 @@
         let quizCompleted = false;
         let hintVisible = false;
         let quizTimeLimit = null; // Global time limit in minutes
+        // New state variable for Google Web App link
+        let webAppLink = null;
 
         // Event Listeners
         startQuizBtn.addEventListener('click', startQuiz);
@@ -673,6 +710,10 @@
         homeBtn.addEventListener('click', goToHome);
         backToResultsBtn.addEventListener('click', backToResults);
         reviewHomeBtn.addEventListener('click', goToHome);
+        // New event listeners for Web App link handling
+        skipWebAppLinkBtn.addEventListener('click', skipWebAppLink);
+        confirmWebAppLinkBtn.addEventListener('click', confirmWebAppLink);
+        webAppLinkInput.addEventListener('input', validateWebAppLink);
 
         // Add global event listener for answer input
         answerInput.addEventListener('input', function() {
@@ -694,7 +735,8 @@
             }
         }
 
-        async function startQuiz() {
+        // Modified startQuiz function to show Web App link screen
+        function startQuiz() {
             const name = nameInput.value.trim();
             const sheetId = sheetIdInput.value.trim();
 
@@ -708,63 +750,97 @@
                 return;
             }
 
-            showScreen(loadingScreen);
+            // Set the student name
             studentName.textContent = name;
+            
+            // Show the Web App link input screen
+            showScreen(webAppLinkScreen);
+        }
 
-            try {
-                const data = await fetchQuestionData(sheetId);
-                if (data && data.length > 0) {
-                    questions = data;
-                    totalQuestions.textContent = questions.length;
-                    totalQuestionsResult.textContent = questions.length;
-
-                    // Extract quiz time limit from the first row if provided
-                    // Expecting timeLimit to be in minutes (only set in the first row after the header)
-                    if (questions[0].timeLimit && !isNaN(questions[0].timeLimit)) {
-                        quizTimeLimit = parseInt(questions[0].timeLimit, 10);
-                    }
-
-                    // Preprocess MCQ questions to shuffle options only once
-                    questions.forEach(question => {
-                        if (question.type === 'MCQ') {
-                            let options = (question.mcqOptions || '')
-                                .split('#')
-                                .map(option => option.trim())
-                                .filter(option => option !== '');
-                            const correctAnswer = (question.answer || '').trim();
-                            const shuffledOptions = shuffleArray(options);
-                            const letters = ['A', 'B', 'C', 'D'];
-                            question.shuffledOptions = shuffledOptions.map((option, index) => ({
-                                letter: letters[index],
-                                option: option,
-                                isCorrect: option.toLowerCase().trim() === correctAnswer.toLowerCase().trim()
-                            }));
-                        }
-                    });
-
-                    // Initialize user answers array with empty objects instead of null
-                    userAnswers = Array(questions.length).fill().map(() => ({
-                        userAnswer: '',
-                        isAnswered: false,
-                        isCorrect: false
-                    }));
-
-                    // Start timer
-                    startTime = new Date();
-                    startTimer();
-
-                    // Show first question
-                    showQuestion(0);
-                    showScreen(questionScreen);
-                } else {
-                    alert('No questions found. Please ensure the Quiz ID is correct and try again.');
-                    showScreen(welcomeScreen);
-                }
-            } catch (error) {
-                console.error('Error fetching questions:', error);
-                alert('Error loading questions. Please ensure the Quiz ID is correct and try again.');
-                showScreen(welcomeScreen);
+        // Function to validate Web App link
+        function validateWebAppLink() {
+            const link = webAppLinkInput.value.trim();
+            
+            // Basic validation - enable OK button if there's any text
+            if (link && (link.startsWith('https://') || link.startsWith('http://'))) {
+                confirmWebAppLinkBtn.disabled = false;
+            } else {
+                confirmWebAppLinkBtn.disabled = true;
             }
+        }
+
+        // Function to skip Web App link input
+        function skipWebAppLink() {
+            webAppLink = null;
+            loadQuizQuestions();
+        }
+
+        // Function to confirm Web App link
+        function confirmWebAppLink() {
+            webAppLink = webAppLinkInput.value.trim();
+            loadQuizQuestions();
+        }
+
+        // Function to load quiz questions
+        function loadQuizQuestions() {
+            showScreen(loadingScreen);
+            
+            const sheetId = sheetIdInput.value.trim();
+
+            fetchQuestionData(sheetId)
+                .then(data => {
+                    if (data && data.length > 0) {
+                        questions = data;
+                        totalQuestions.textContent = questions.length;
+                        totalQuestionsResult.textContent = questions.length;
+
+                        // Extract quiz time limit from the first row if provided
+                        if (questions[0].timeLimit && !isNaN(questions[0].timeLimit)) {
+                            quizTimeLimit = parseInt(questions[0].timeLimit, 10);
+                        }
+
+                        // Preprocess MCQ questions to shuffle options only once
+                        questions.forEach(question => {
+                            if (question.type === 'MCQ') {
+                                let options = (question.mcqOptions || '')
+                                    .split('#')
+                                    .map(option => option.trim())
+                                    .filter(option => option !== '');
+                                const correctAnswer = (question.answer || '').trim();
+                                const shuffledOptions = shuffleArray(options);
+                                const letters = ['A', 'B', 'C', 'D'];
+                                question.shuffledOptions = shuffledOptions.map((option, index) => ({
+                                    letter: letters[index],
+                                    option: option,
+                                    isCorrect: option.toLowerCase().trim() === correctAnswer.toLowerCase().trim()
+                                }));
+                            }
+                        });
+
+                        // Initialize user answers array with empty objects instead of null
+                        userAnswers = Array(questions.length).fill().map(() => ({
+                            userAnswer: '',
+                            isAnswered: false,
+                            isCorrect: false
+                        }));
+
+                        // Start timer
+                        startTime = new Date();
+                        startTimer();
+
+                        // Show first question
+                        showQuestion(0);
+                        showScreen(questionScreen);
+                    } else {
+                        alert('No questions found. Please ensure the Quiz ID is correct and try again.');
+                        showScreen(welcomeScreen);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching questions:', error);
+                    alert('Error loading questions. Please ensure the Quiz ID is correct and try again.');
+                    showScreen(welcomeScreen);
+                });
         }
 
         async function fetchQuestionData(sheetId) {
@@ -1083,7 +1159,44 @@
             clearInterval(timerInterval);
         }
 
-        function finishQuiz() {
+        // Function to build stats string for submission
+        function buildStatsString() {
+            return userAnswers.map((answer, index) => {
+                const questionNum = index + 1;
+                const result = answer.isAnswered ? 
+                    (answer.isCorrect ? "right" : "wrong") : 
+                    "unanswered";
+                return `${questionNum}-${result}`;
+            }).join(';');
+        }
+
+        // Function to submit quiz data to Google Web App
+        async function submitQuizData(quizData) {
+            if (!webAppLink) return false;
+            
+            try {
+                const response = await fetch(webAppLink, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(quizData)
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to submit quiz data:', response.statusText);
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error submitting quiz data:', error);
+                return false;
+            }
+        }
+
+        // Modified finishQuiz function to include submission logic
+        async function finishQuiz() {
             stopTimer();
             quizCompleted = true;
 
@@ -1104,7 +1217,31 @@
             const elapsedSeconds = Math.floor(elapsedMilliseconds / 1000);
             const minutes = Math.floor(elapsedSeconds / 60);
             const seconds = elapsedSeconds % 60;
-            timeSpent.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const formattedTimeSpent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            timeSpent.textContent = formattedTimeSpent;
+
+            // Submit data to Google Web App if a link was provided
+            if (webAppLink) {
+                // Prepare quiz data for submission
+                const quizData = {
+                    name: studentName.textContent,
+                    quizId: sheetIdInput.value,
+                    stats: buildStatsString(),
+                    totalQuestions: questions.length,
+                    questionsAttempted: totalAttempted,
+                    correctAnswers: correct,
+                    incorrectAnswers: incorrect,
+                    timeSpent: formattedTimeSpent
+                };
+                
+                // Submit quiz data
+                const submitted = await submitQuizData(quizData);
+                
+                // Show success notification if submission was successful
+                if (submitted) {
+                    submissionNotification.style.display = 'block';
+                }
+            }
 
             // Show result screen
             showScreen(resultScreen);
@@ -1222,6 +1359,10 @@
             nameInput.value = '';
             sheetIdInput.value = '';
             quizTimeLimit = null;
+            webAppLink = null;
+            webAppLinkInput.value = '';
+            submissionNotification.style.display = 'none';
+            confirmWebAppLinkBtn.disabled = true;
 
             // Stop timer if running
             if (timerInterval) {
