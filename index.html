@@ -808,7 +808,7 @@
                                     .filter(option => option !== '');
                                 const correctAnswer = (question.answer || '').trim();
                                 const shuffledOptions = shuffleArray(options);
-                                const letters = ['A', 'B', 'C', 'D'];
+                                const letters = Array.from({length: shuffledOptions.length}, (_, i) => String.fromCharCode(65 + i));
                                 question.shuffledOptions = shuffledOptions.map((option, index) => ({
                                     letter: letters[index],
                                     option: option,
